@@ -1,0 +1,10 @@
+// src/types/express/index.d.ts
+import { User } from '../../models/User';
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: User; // 扩展 req 对象，使其包含 user 字段
+    }
+  }
+}
