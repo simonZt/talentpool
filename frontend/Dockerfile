@@ -20,7 +20,7 @@ COPY . .
 
 # 运行构建命令
 # 可以在这里设置 Node 内存限制，双重保险
-RUN export NODE_OPTIONS="--max-old-space-size=1024" && npm run build
+RUN chmod +x ./node_modules/.bin/vite && export NODE_OPTIONS="--max-old-space-size=1024" && npm run build
 
 # 第二阶段：生产阶段
 # 使用 Nginx 镜像来托管构建好的静态文件
