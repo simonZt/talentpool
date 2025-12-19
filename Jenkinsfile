@@ -44,7 +44,7 @@ pipeline {
             steps {
                 echo '--- 步骤3: 构建后端Python镜像 ---'
                 // 假设后端代码在 talentpool-backend 目录下，且该目录包含 Dockerfile
-                dir('talentpool-backend') {
+                dir('backend') {
                     script {
                         // 【修正点2】明确构建步骤，并移除不适用的推送逻辑
                         // 我们只构建，并标记镜像，为后续步骤做准备
