@@ -35,6 +35,9 @@ pipeline {
                         rm -rf node_modules
                         rm -f package-lock.json
 
+                        echo "为 npm 设置国内镜像源以加速下载..."
+                        npm config set registry https://registry.npmmirror.com
+                        
                         echo "安装前端依赖..."
                         npm install
                         echo "修复执行权限..."
