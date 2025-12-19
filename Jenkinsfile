@@ -20,28 +20,39 @@ pipeline {
     stages {
         stage('1. Checkout Code') {
             steps {
-                echo '--- 步骤1: 拉取代码 ---'
-                timeout(time: 30, unit: 'MINUTES') {
-                    checkout scm
+                echo '--- 步骤1: 拉取代码 (浅克隆) ---'
+                timeout(time: 20, unit: 'MINUTES') {
+                    // 【关键修改】使用浅克隆解决网络超时问题
+                    // changelog: false 不计算变更日志
+                    // extensions: [[$class: 'CloneOption', depth: 1, noTags: true, shallow: true]] 只拉取最近1个提交
+                    checkout changelog: false,
+                            scm: [
+                                $class: 'GitSCM',
+                                branches: [[name: '*/main']], // 请确认你的主分支是 main 还是 master
+                                doGenerateSubmoduleConfigurations: false,
+                                extensions: [[$class: 'CloneOption', depth: 1, noTags: true, shallow: true]],
+                                userRemoteConfigs: [[url: 'https://github.com/simonZt/talentpool.git', credentialsId: '906808f7-546e-4b91-9023-7e97eb641f90']]
+                            ]
                 }
             }
         }
 
         stage('2. Build Frontend (Vue3)') {
             steps {
-        // 进入前端项目目录
-        dir('frontend') {
-            // 构建 Docker 镜像
-            // --no-cache 确保每次构建都重新安装依赖，避免缓存问题
-            sh 'docker build -t talentpool-frontend:latest --no-cache .'
+                echo '--- 步骤2: 构建前端镜像 ---'
+                // 进入前端项目目录
+                dir('frontend') {
+                    // 构建 Docker 镜像
+                    // --no-cache 确保每次构建都重新安装依赖，避免缓存问题
+                    sh 'docker build -t talentpool-frontend:latest --no-cache .'
 
-            // 将镜像保存为 tar 文件，方便后续传输或上传
-            sh 'docker save -o frontend-image.tar talentpool-frontend:latest'
+                    // 将镜像保存为 tar 文件，方便后续传输或上传
+                    sh 'docker save -o frontend-image.tar talentpool-frontend:latest'
 
-            echo '前端 Docker 镜像构建完成！'
+                    echo '前端 Docker 镜像构建完成！'
+                }
+            }
         }
-    }
-}
 
         stage('3. Build Backend (Python) Image') {
             steps {
@@ -49,8 +60,7 @@ pipeline {
                 // 假设后端代码在 talentpool-backend 目录下，且该目录包含 Dockerfile
                 dir('backend') {
                     script {
-                        // 【修正点2】明确构建步骤，并移除不适用的推送逻辑
-                        // 我们只构建，并标记镜像，为后续步骤做准备
+                        // 明确构建步骤，并标记镜像，为后续步骤做准备
                         docker.build("talentpool-backend:${env.BUILD_ID}")
                     }
                 }
@@ -95,7 +105,6 @@ pipeline {
                                 docker rm talentpool-backend || true
 
                                 # 运行新容器
-                                # 【修正点3】取消了注释，并确保使用正确的镜像标签
                                 # -p 8000:8000 将容器的8000端口映射到服务器的8000端口
                                 docker run -d --name talentpool-backend -p 8000:8000 talentpool-backend:${env.BUILD_ID}
 
@@ -117,7 +126,7 @@ pipeline {
             echo '--- 流水线执行完毕 ---'
             // 清理工作空间和工作区的 Docker 镜像文件
             cleanWs()
-            sh 'rm -f backend-image.tar'
+            sh 'rm -f backend-image.tar frontend-image.tar'
         }
     }
 }
