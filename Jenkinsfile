@@ -27,28 +27,19 @@ pipeline {
 
         stage('2. Build Frontend (Vue3)') {
             steps {
-                echo '--- 步骤2: 构建前端VUE3项目 ---'
-                // 【修正点1】根据之前的沟通，前端代码目录应为 talentpool-ui
-                dir('frontend') {
-                    sh '''
-                        echo "清理旧的依赖和锁定文件..."
-                        rm -rf node_modules
-                        rm -f package-lock.json
+        // 进入前端项目目录
+        dir('frontend') {
+            // 构建 Docker 镜像
+            // --no-cache 确保每次构建都重新安装依赖，避免缓存问题
+            sh 'docker build -t talentpool-frontend:latest --no-cache .'
 
-                        echo "为 npm 设置国内镜像源以加速下载..."
-                        npm config set registry https://registry.npmmirror.com
-                        
-                        echo "安装前端依赖..."
-                        npm install
-                        echo "修复执行权限..."
-                        chmod +x node_modules/.bin/esbuild node_modules/.bin/esbuild.cmd node_modules/.bin/esbuild.ps1 node_modules/.bin/he node_modules/.bin/he.cmd node_modules/.bin/he.ps1 node_modules/.bin/nanoid node_modules/.bin/nanoid.cmd node_modules/.bin/nanoid.ps1 node_modules/.bin/parser node_modules/.bin/parser.cmd node_modules/.bin/parser.ps1 node_modules/.bin/rollup node_modules/.bin/rollup.cmd node_modules/.bin/rollup.ps1 node_modules/.bin/semver node_modules/.bin/semver.cmd node_modules/.bin/semver.ps1 node_modules/.bin/tsc node_modules/.bin/tsc.cmd node_modules/.bin/tsc.ps1 node_modules/.bin/tsserver node_modules/.bin/tsserver.cmd node_modules/.bin/tsserver.ps1 node_modules/.bin/vite node_modules/.bin/vite.cmd node_modules/.bin/vite.ps1 node_modules/.bin/vue-demi-fix node_modules/.bin/vue-demi-fix.cmd node_modules/.bin/vue-demi-fix.ps1 node_modules/.bin/vue-demi-switch node_modules/.bin/vue-demi-switch.cmd node_modules/.bin/vue-demi-switch.ps1 node_modules/.bin/vue-tsc node_modules/.bin/vue-tsc.cmd node_modules/.bin/vue-tsc.ps1
-                        echo "构建前端项目..."
-                        # 使用 node 命令并限制最大内存为 512MB
-                        node --max-old-space-size=512 ./node_modules/.bin/vite build
-                    '''
-                }
-            }
+            // 将镜像保存为 tar 文件，方便后续传输或上传
+            sh 'docker save -o frontend-image.tar talentpool-frontend:latest'
+
+            echo '前端 Docker 镜像构建完成！'
         }
+    }
+}
 
         stage('3. Build Backend (Python) Image') {
             steps {
