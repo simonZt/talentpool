@@ -21,7 +21,8 @@ pipeline {
         stage('1. Checkout Code') {
             steps {
                 echo '--- 步骤1: 拉取代码 ---'
-                checkout scm
+                timeout(time: 30, unit: 'MINUTES') {
+                    checkout scm
             }
         }
 
