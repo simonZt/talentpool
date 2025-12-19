@@ -23,6 +23,7 @@ pipeline {
                 echo '--- 步骤1: 拉取代码 ---'
                 timeout(time: 30, unit: 'MINUTES') {
                     checkout scm
+                }
             }
         }
 
