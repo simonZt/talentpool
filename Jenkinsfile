@@ -33,6 +33,8 @@ pipeline {
                     sh '''
                         echo "安装前端依赖..."
                         npm install
+                        echo "修复执行权限..."
+                        chmod +x node_modules/.bin/*
                         echo "构建前端项目..."
                         npm run build
                     '''
