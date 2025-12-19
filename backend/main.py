@@ -1,9 +1,9 @@
 from fastapi import FastAPI, UploadFile, File, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from .database import engine, Base, get_db
-from .models import User
-from .auth import get_password_hash, role_required, get_current_user
+from database import engine, Base, get_db
+from models import User
+from auth import get_password_hash, role_required, get_current_user
 import os
 
 # 创建表
