@@ -29,7 +29,7 @@ pipeline {
             steps {
                 echo '--- 步骤2: 构建前端VUE3项目 ---'
                 // 【修正点1】根据之前的沟通，前端代码目录应为 talentpool-ui
-                dir('talentpool-ui') {
+                dir('frontend') {
                     sh '''
                         echo "安装前端依赖..."
                         npm install
