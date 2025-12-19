@@ -7,6 +7,10 @@ WORKDIR /app
 # 3. 先复制依赖定义文件
 COPY pyproject.toml ./
 
+# 安装 Python 依赖
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
 # 4. 安装依赖 (这是关键的修复步骤)
 #    - 移除了 --break-system-packages
 #    - 移除了 -e .，改为 pip install .
