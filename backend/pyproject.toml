@@ -1,0 +1,21 @@
+[project]
+name = "talentpool-backend"
+version = "1.0.0"
+description = "Backend API for the TalentPool application."
+authors = [
+    {name = "Your Team", email = "your.team@example.com"},
+]
+# 这里的依赖项列表已根据您的 requirements.txt 完善
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "sqlalchemy",
+    "passlib[bcrypt]",
+    "python-jose[cryptography]",
+    "python-multipart",
+    "pypdf2",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
