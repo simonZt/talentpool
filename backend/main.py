@@ -26,6 +26,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # 包含路由
 from routers import auth, dashboard, positions, resumes, interviews, system
+from routers.auth import router as auth_router
 app.include_router(auth.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api", dependencies=[Depends(get_current_user)])
 app.include_router(positions.router, prefix="/api", dependencies=[Depends(get_current_user)])

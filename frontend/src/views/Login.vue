@@ -44,7 +44,7 @@ const handleLogin = async () => {
     // ✅ 使用环境变量 VITE_API_BASE_URL，确保生产环境指向正确的服务器地址
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
     const response = await axios.post(
-      `${apiBaseUrl}/api/auth/token`,
+      `${apiBaseUrl}/api/auth/login`,
       new URLSearchParams({
         username: form.username,
         password: form.password
