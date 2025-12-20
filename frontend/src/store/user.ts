@@ -1,84 +1,114 @@
-// D:\兰花花\talentpool\frontend\src\store\user.ts
+// frontend/src/store/user.ts
 
-import * as api from '@/api';
-import type { AxiosError } from 'axios';
-import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import type { AxiosError } from 'axios'
+import { ElMessage } from 'element-plus'
+import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
 
-// 定义后端返回的登录响应结构
+// 后端登录响应结构 (来自 /api/auth/login)
 interface LoginResponse {
-  code: number;
-  message: string;
-  data: {
-    token: string;
-    username: string;
-    role: string;
-  };
+  access_token: string
+  token_type: string
 }
 
-// 定义用户信息的类型
+// 用户信息结构
 interface UserInfo {
-  username?: string;
-  token?: string;
-  role?: string;
+  username?: string
+  name?: string
+  role?: string
 }
 
 export const useUserStore = defineStore('user', () => {
+  // 状态
   const token = ref(localStorage.getItem('token') || '')
   const userInfo = ref<UserInfo>(JSON.parse(localStorage.getItem('userInfo') || '{}'))
 
-  // 修正后的 handleLogin Action
-  async function handleLogin(formData: any): Promise<void> {
+  // 计算属性 (路由守卫需要)
+  const isAuthenticated = computed(() => !!token.value)
+  const role = computed(() => userInfo.value?.role || '')
+  const info = computed(() => userInfo.value)
+
+  // 登录方法 -直接发送请求，绕过 api.login (因为它路径不对)
+  async function handleLogin(username: string, password: string): Promise<void> {
     try {
-      // 1. 调用 api.login，它返回一个 AxiosResponse 对象
-      const response = await api.login(formData)
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
-      // 2. 从 response 中提取 data，并对 data 进行类型断言
-      // 这是最关键的修改！
-      const res = response.data as LoginResponse
+      //直接发送请求，确保路径和格式正确
+      const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({ username, password }).toString()
+      })
 
-      // 现在 TypeScript 知道 res 是 LoginResponse 类型，可以安全地访问 code, message, data
-      if (res.code === 200) {
-        // 3. 直接调用 login 函数 (无需使用 this)
-        login(res.data)
-        console.log('登录成功！')
-      } else {
-        const errorMessage = res.message || '未知错误'
-        console.error('登录失败:', errorMessage)
-        throw new Error(errorMessage)
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || '登录失败')
       }
+
+      const data: LoginResponse = await response.json()
+
+      // 保存 token
+      token.value = data.access_token
+      localStorage.setItem('token', data.access_token)
+
+      // 登录成功后立即获取用户信息
+      await fetchUserInfo()
+
+      ElMessage.success('登录成功！')
     } catch (error) {
-      // 统一错误处理
       const axiosError = error as AxiosError
       let errorMessage = '登录请求出错'
 
       if (axiosError.response) {
-        // 尝试从后端错误响应中解析 message
-        const errData = axiosError.response.data as LoginResponse
-        errorMessage = errData.message || `服务器错误: ${axiosError.response.status}`
+        const errData = axiosError.response.data as any
+        errorMessage = errData?.detail || `服务器错误: ${axiosError.response.status}`
       } else if (axiosError.request) {
         errorMessage = '网络错误，请检查您的连接'
       } else {
         errorMessage = axiosError.message
       }
 
-      console.error('登录请求出错:', errorMessage)
+      console.error('登录失败:', errorMessage)
+      ElMessage.error(errorMessage)
       throw new Error(errorMessage)
     }
   }
 
-  // --- 以下是 store 内部的状态管理方法 (保持不变) ---
-  function login(userData: UserInfo) {
-    if (userData.token) {
-      token.value = userData.token
-      localStorage.setItem('token', userData.token)
+  // 获取用户信息 (供路由守卫调用)
+  async function fetchUserInfo() {
+    if (!token.value) {
+      throw new Error('No token available')
     }
-    if (userData) {
-      userInfo.value = userData
-      localStorage.setItem('userInfo', JSON.stringify(userData))
+
+    try {
+      // 使用正确的 API 路径
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiBaseUrl}/api/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${token.value}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`获取用户信息失败: ${response.status}`)
+      }
+
+      const data = await response.json()
+      userInfo.value = data
+      localStorage.setItem('userInfo', JSON.stringify(data))
+
+      return data
+    } catch (error) {
+      console.error('获取用户信息失败:', error)
+      // 获取失败时清除token，避免状态不一致
+      logout()
+      throw error
     }
   }
 
+  // 登出
   function logout() {
     token.value = ''
     userInfo.value = {}
@@ -86,13 +116,20 @@ export const useUserStore = defineStore('user', () => {
     localStorage.removeItem('userInfo')
   }
 
+  // 检查登录状态
   const isLoggedIn = () => !!token.value
 
   return {
+    // 状态
     token,
     userInfo,
+    // 计算属性
+    isAuthenticated,
+    role,
+    info,
+    // 方法
     handleLogin,
-    login,
+    fetchUserInfo,
     logout,
     isLoggedIn
   }

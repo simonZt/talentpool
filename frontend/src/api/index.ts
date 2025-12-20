@@ -1,7 +1,14 @@
 import request from '@/utils/request'
 
 // Auth
-export const login = (params: any) => request.post('/auth/token', null, { params })
+// 修改登录接口以匹配后端 OAuth2PasswordRequestForm 格式
+export const login = (data: any) => {
+  return request.post('/auth/login', null, {
+    params: data,
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+  })
+}
+
 export const getProfile = () => request.get('/auth/me')
 
 // Dashboard

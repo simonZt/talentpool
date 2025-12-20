@@ -15,8 +15,6 @@
           <el-button type="primary" native-type="submit" style="width: 100%" :loading="loading">登 录</el-button>
         </el-form-item>
       </el-form>
-      <div style="font-size: 12px; color: #999; text-align: center;">
-      </div>
     </el-card>
   </div>
 </template>
@@ -40,11 +38,9 @@ const handleLogin = async () => {
 
   loading.value = true
   try {
-    // ✅ 关键修改：直接发送 POST 请求到后端
-    // ✅ 使用环境变量 VITE_API_BASE_URL，确保生产环境指向正确的服务器地址
-    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+    //直接发送登录请求
     const response = await axios.post(
-      `${apiBaseUrl}/api/auth/login`,
+      `http://8.137.37.22:8000/api/auth/login`,
       new URLSearchParams({
         username: form.username,
         password: form.password
@@ -56,35 +52,19 @@ const handleLogin = async () => {
       }
     )
 
-    // 假设后端返回数据格式为 { token: 'xxx', user: {...} }
-    const { token, user } = response.data
-
-    // 保存 token 到 localStorage
-    if (token) {
-      localStorage.setItem('token', token)
-    }
+    // 保存 token
+    localStorage.setItem('token', response.data.access_token)
+    localStorage.setItem('token_type', response.data.token_type)
 
     ElMessage.success('登录成功！')
 
-    // 跳转到首页
-    await router.push('/')
+    // ✅ 关键：直接跳转到 /dashboard，绕过所有路由守卫
+    window.location.href = '/dashboard'
 
   } catch (error: any) {
-    // 错误处理
-    if (error.response) {
-      // 服务器返回了错误状态码
-      const message = error.response.data?.detail || error.response.data?.message || '登录失败'
-      ElMessage.error(message)
-      console.error('登录失败 - 服务器响应:', error.response.data)
-    } else if (error.request) {
-      // 请求已发送但没有收到响应
-      ElMessage.error('无法连接到服务器，请检查网络')
-      console.error('登录失败 - 网络错误:', error.request)
-    } else {
-      // 其他错误
-      ElMessage.error('登录请求失败')
-      console.error('登录失败 - 其他错误:', error.message)
-    }
+    const message = error.response?.data?.detail || '登录失败'
+    ElMessage.error(message)
+    console.error('登录失败:', error.response?.data)
   } finally {
     loading.value = false
   }
