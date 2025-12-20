@@ -22,8 +22,9 @@ class UserResponse(BaseModel):
     is_active: bool
     created_at: datetime
 
-    class Config:
-        orm_mode = True # 这个配置对于从 SQLAlchemy 模型转换非常重要
+    model_config = {  # 使用 model_config 替代 Config 类
+        "from_attributes": True  # 替换 orm_mode
+    }
 
 # --- 用户与认证 ---
 class UserBase(BaseModel):

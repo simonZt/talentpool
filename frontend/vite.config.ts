@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => {
       proxy: {
         '/api': {
           // 使用环境变量，如果不存在则回退到 localhost（仅用于开发）
-          target: env.VITE_API_BASE_URL || 'http://localhost:8000',
+          target: process.env.VITE_API_BASE_URL,
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, '')
         }
