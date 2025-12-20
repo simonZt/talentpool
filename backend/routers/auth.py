@@ -7,9 +7,9 @@ from datetime import timedelta
 
 # 从 schemas 和其他模块导入
 # 注意：根据您提供的代码，您使用了 crud 和 auth 模块
-from ..schemas import Token, UserResponse
-from ..database import get_db
-from .. import crud, auth
+from schemas import Token, UserResponse
+from database import get_db
+import crud, auth
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 

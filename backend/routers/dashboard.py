@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func, extract, cast, Date
-from .. import models, auth
-from ..database import get_db
+import models, auth
+from database import get_db
 from datetime import datetime, timedelta
 
 router = APIRouter()

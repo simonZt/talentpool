@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from .. import models, schemas, auth
-from ..database import get_db
-from ..utils.resume_parser import extract_text_from_pdf, extract_text_from_docx, parse_resume_content
+import models, schemas, auth
+from database import get_db
+from utils.resume_parser import extract_text_from_pdf, extract_text_from_docx, parse_resume_content
 import os
 import shutil
 from datetime import datetime
