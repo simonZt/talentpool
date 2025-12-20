@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 # 从 core/config.py 导入配置
 from core.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 from database import get_db
-from . import models, schemas
+import models, schemas
 
 
 SECRET_KEY = "YOUR_SECRET_KEY_ALIYUN" # 生产环境请使用环境变量
