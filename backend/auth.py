@@ -2,16 +2,15 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
-from .database import get_db
-from .models import User
+from models import User
 from passlib.hash import scrypt
 from passlib.hash import bcrypt
 from typing import Optional
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 # 从 core/config.py 导入配置
-from .core.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
-from .database import get_db
+from core.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+from database import get_db
 from . import models, schemas
 
 

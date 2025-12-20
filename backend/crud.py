@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
-from .models import User, Position, Resume, Interview
-from .schemas import UserCreate, PositionCreate, PositionUpdate, ResumeCreate, ResumeUpdate
-from .auth import get_password_hash
+from models import User, Position, Resume, Interview
+from schemas import UserCreate, PositionCreate, PositionUpdate, ResumeCreate, ResumeUpdate
+from auth import get_password_hash
 from datetime import datetime
 
 # User
