@@ -25,7 +25,7 @@ os.makedirs("static/resumes", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # 包含路由
-from .routers import auth, dashboard, positions, resumes, interviews, system
+from routers import auth, dashboard, positions, resumes, interviews, system
 app.include_router(auth.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api", dependencies=[Depends(get_current_user)])
 app.include_router(positions.router, prefix="/api", dependencies=[Depends(get_current_user)])
