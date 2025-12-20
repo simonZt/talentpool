@@ -6,3 +6,4 @@ passlib[bcrypt]
 python-jose[cryptography]
 python-multipart
 pypdf2  # 用于简单的PDF文本提取演示
+python-dotenv
