@@ -1,7 +1,7 @@
 <template>
-  <div class="login-container">
+ <div class="login-container">
     <el-card class="login-card">
-      <template #header>
+ <template #header>
         <div style="text-align: center; font-weight: bold; font-size: 18px;">内部人才管理系统</div>
       </template>
       <el-form :model="form" :rules="rules" @submit.prevent="handleLogin">
@@ -22,10 +22,11 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import axios from 'axios'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '@/store/user'
 
 const router = useRouter()
+const userStore = useUserStore()
 const loading = ref(false)
 const form = reactive({ username: '', password: '' })
 const rules = {
@@ -38,33 +39,17 @@ const handleLogin = async () => {
 
   loading.value = true
   try {
-    //直接发送登录请求
-    const response = await axios.post(
-      `http://8.137.37.22:8000/api/auth/login`,
-      new URLSearchParams({
-        username: form.username,
-        password: form.password
-      }).toString(),
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      }
-    )
+    // ✅正确：调用 Pinia store 的 handleLogin 方法
+    // 这会确保 token 和 userInfo 都被正确保存到 store 和 localStorage
+    await userStore.handleLogin(form.username, form.password)
 
-    // 保存 token
-    localStorage.setItem('token', response.data.access_token)
-    localStorage.setItem('token_type', response.data.token_type)
-
-    ElMessage.success('登录成功！')
-
-    // ✅ 关键：直接跳转到 /dashboard，绕过所有路由守卫
-    window.location.href = '/dashboard'
+    // ✅ 登录成功后，store 已经更新，路由守卫现在能正确识别登录状态
+    // 使用 router.push 而不是 window.location，保持单页应用体验
+    await router.push('/dashboard')
 
   } catch (error: any) {
-    const message = error.response?.data?.detail || '登录失败'
-    ElMessage.error(message)
-    console.error('登录失败:', error.response?.data)
+    // 错误已经在 store 的 handleLogin 中通过 ElMessage 显示了
+    // 这里只需要控制台日志和重置 loading    console.error('登录流程失败:', error)
   } finally {
     loading.value = false
   }

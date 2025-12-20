@@ -1,4 +1,4 @@
-import useUserStore from '@/store/user'
+import { useUserStore } from '@/store/user'
 import { ElMessage } from 'element-plus'
 import { createRouter, createWebHistory, type NavigationGuardNext, type RouteRecordRaw } from 'vue-router'
 

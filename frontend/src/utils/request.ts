@@ -1,7 +1,7 @@
 // frontend/src/utils/request.ts
 
 import router from '@/router'
-import useUserStore from '@/store/user'
+import { useUserStore } from '@/store/user'
 import axios, { type AxiosError, type AxiosResponse } from 'axios'
 import { ElMessage } from 'element-plus'
 

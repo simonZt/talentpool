@@ -13,9 +13,34 @@ declare module '@/utils/request' {
   export default request
 }
 
+// ==================== 关键：修正 Pinia Store 类型 ====================
 declare module '@/store/user' {
-  const userStore: any
-  export default userStore
+  import type { Pinia } from 'pinia'
+
+  // 定义 Store 的完整类型
+  interface UserStore {
+    // State
+    token: string
+    userInfo: any
+
+    // Getters (作为属性)
+    readonly isAuthenticated: boolean
+    readonly role: string
+    readonly info: any
+
+    // Actions
+    handleLogin: (username: string, password: string) => Promise<void>
+    fetchUserInfo: () => Promise<any>
+    logout: () => void
+    isLoggedIn: () => boolean
+  }
+
+  // 导出构造函数
+  export function useUserStore(pinia?: Pinia): UserStore
+
+  //同时支持两种导入方式
+  export default useUserStore
+  export { useUserStore }
 }
 
 declare module '@/api' {
@@ -28,19 +53,7 @@ declare module '@/router' {
   export default router
 }
 
-// ==================== 修复router/index.ts的逻辑错误 ====================
-
-// 1. 修复 userStore.role 类型问题
-// 在 router/index.ts 的 <script> 部分添加类型定义：
-declare interface UserStore {
-  role: string
-  //其他属性...
-}
-
-// 2. 修复 next()重载错误
-// 在 router/index.ts 顶部添加：
-
-// ==================== 修复其他可能的类型问题 ====================
+// ==================== 其他声明 ====================
 declare module '*.css'
 declare module '*.scss'
 declare module '*.png'
