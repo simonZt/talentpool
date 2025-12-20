@@ -9,7 +9,7 @@ import os
 # 创建表
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="HR管理系统")
+app = FastAPI(title="内部人才管理系统")
 
 # CORS
 app.add_middleware(
@@ -41,7 +41,7 @@ async def create_default_admin():
         hashed = get_password_hash("admin")
         db.add(User(username="admin", name="系统管理员", password_hash=hashed, role="super_admin"))
         db.commit()
-        print("Default Admin Created: admin / admin123")
+        print("Default Admin Created: admin / admin")
 
 if __name__ == "__main__":
     import uvicorn

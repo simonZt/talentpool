@@ -24,9 +24,10 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { useUserStore } from '@/store/user'
+import axios from 'axios'
+import { useRouter } from 'vue-router'
 
-const userStore = useUserStore()
+const router = useRouter()
 const loading = ref(false)
 const form = reactive({ username: '', password: '' })
 const rules = {
@@ -35,10 +36,47 @@ const rules = {
 }
 
 const handleLogin = async () => {
-  if (!form.username || !form.password) return ElMessage.warning('请填写完整')
+  if (!form.username || !form.password) return ElMessage.warning('请输入用户名和密码')
+
   loading.value = true
   try {
-    await userStore.login(form.username, form.password)
+    // ✅ 关键修改：直接发送 POST 请求到后端
+    // ✅ 使用环境变量 VITE_API_BASE_URL，确保生产环境指向正确的服务器地址
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+    const response = await axios.post(`${apiBaseUrl}/api/login`, {
+      username: form.username,
+      password: form.password
+    })
+
+    // 假设后端返回数据格式为 { token: 'xxx', user: {...} }
+    const { token, user } = response.data
+
+    // 保存 token 到 localStorage
+    if (token) {
+      localStorage.setItem('token', token)
+    }
+
+    ElMessage.success('登录成功！')
+
+    // 跳转到首页
+    await router.push('/')
+
+  } catch (error: any) {
+    // 错误处理
+    if (error.response) {
+      // 服务器返回了错误状态码
+      const message = error.response.data?.detail || error.response.data?.message || '登录失败'
+      ElMessage.error(message)
+      console.error('登录失败 - 服务器响应:', error.response.data)
+    } else if (error.request) {
+      // 请求已发送但没有收到响应
+      ElMessage.error('无法连接到服务器，请检查网络')
+      console.error('登录失败 - 网络错误:', error.request)
+    } else {
+      // 其他错误
+      ElMessage.error('登录请求失败')
+      console.error('登录失败 - 其他错误:', error.message)
+    }
   } finally {
     loading.value = false
   }
