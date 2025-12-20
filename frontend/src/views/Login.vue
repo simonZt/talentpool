@@ -2,7 +2,7 @@
   <div class="login-container">
     <el-card class="login-card">
       <template #header>
-        <div style="text-align: center; font-weight: bold; font-size: 18px;">内部人才库系统</div>
+        <div style="text-align: center; font-weight: bold; font-size: 18px;">内部人才管理系统</div>
       </template>
       <el-form :model="form" :rules="rules" @submit.prevent="handleLogin">
         <el-form-item prop="username">
