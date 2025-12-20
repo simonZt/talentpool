@@ -43,10 +43,18 @@ const handleLogin = async () => {
     // ✅ 关键修改：直接发送 POST 请求到后端
     // ✅ 使用环境变量 VITE_API_BASE_URL，确保生产环境指向正确的服务器地址
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
-    const response = await axios.post(`${apiBaseUrl}/api/login`, {
-      username: form.username,
-      password: form.password
-    })
+    const response = await axios.post(
+      `${apiBaseUrl}/api/auth/token`,
+      new URLSearchParams({
+        username: form.username,
+        password: form.password
+      }).toString(),
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      }
+    )
 
     // 假设后端返回数据格式为 { token: 'xxx', user: {...} }
     const { token, user } = response.data
