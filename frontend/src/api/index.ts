@@ -15,9 +15,9 @@ export const getProfile = () => request.get('/auth/me')
 export const getStats = () => request.get('/dashboard/stats')
 
 // System
-export const getUsers = () => request.get('/system/users')
-export const createUser = (data: any) => request.post('/system/users', data)
-export const deleteUser = (id: number) => request.delete(`/system/users/${id}`)
+export const getUsers = () => request.get('/users')
+export const createUser = (data: any) => request.post('/users', data)
+export const deleteUser = (id: number) => request.delete(`/users/${id}`)
 export const changePassword = (id: number, pwd: string) => request.put(`/system/users/${id}/password?password=${pwd}`)
 
 // Positions

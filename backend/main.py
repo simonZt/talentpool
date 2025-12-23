@@ -6,10 +6,23 @@ from models import User
 from auth import get_password_hash, role_required, get_current_user
 import os
 
+# 添加超时中间件
+class TimeoutMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        try:
+            # 设置30 秒超时
+            return await asyncio.wait_for(call_next(request), timeout=30.0)
+        except asyncio.TimeoutError:
+            from fastapi.responses import JSONResponse
+            return JSONResponse(status_code=504, content={"detail": "Request timeout"})
+        
 # 创建表
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="内部人才管理系统")
+
+# 添加超时中间件
+app.add_middleware(TimeoutMiddleware)
 
 # CORS
 app.add_middleware(

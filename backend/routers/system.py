@@ -48,10 +48,15 @@ async def get_users(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
-    query = db.query(models.User).filter(models.User.is_active == True)
-    if current_user.role == 'manager':
-        query = query.filter(models.User.role == 'user') # 管理员只能看普通用户
-    return query.all()
+    try:
+        query = db.query(models.User).filter(models.User.is_active == True).limit(100)
+        if current_user.role == 'manager':
+            query = query.filter(models.User.role == 'user') # 管理员只能看普通用户
+        result = query.all()
+
+        return query.all()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 # 离职/删除用户 (Hard Delete for Super Admin)
 @router.delete("/users/{user_id}")
