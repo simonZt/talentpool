@@ -6,13 +6,12 @@ pipeline {
     }
 
     environment {
-        SERVER_IP = '8.137.37.22'
+ SERVER_IP = '8.137.37.22'
         SERVER_USER = 'root'
         SERVER_CRED_ID = 'aliyun-server-cred'
         SERVER_APP_DIR = '/opt/talentpool'
         FRONTEND_IMAGE = 'talentpool-frontend'
-        BACKEND_IMAGE = 'talentpool-backend'
-        IMAGE_VERSION = "${env.BUILD_ID}"
+ BACKEND_IMAGE = 'talentpool-backend'
     }
 
     stages {
@@ -32,87 +31,75 @@ pipeline {
             }
         }
 
-        stage('2. Build Frontend (Vue3) Docker Image') {
+        stage('2. Deploy & Build on Server') {
             steps {
-                echo '--- 步骤2: 构建前端 Docker 镜像 ---'
-                dir('frontend') {
-                    sh "docker build -t ${FRONTEND_IMAGE}:${IMAGE_VERSION} --no-cache ."
-                    sh "docker tag ${FRONTEND_IMAGE}:${IMAGE_VERSION} ${FRONTEND_IMAGE}:latest"
-                    echo "前端 Docker 镜像 ${FRONTEND_IMAGE}:${IMAGE_VERSION} 构建完成！"
-                }
-            }
-        }
-
-        stage('3. Build Backend (Python) Docker Image') {
-            steps {
-                echo '--- 步骤3: 构建后端 Python 镜像 ---'
-                dir('backend') {
-                    sh "docker build -t ${BACKEND_IMAGE}:${IMAGE_VERSION} ."
-                    sh "docker tag ${BACKEND_IMAGE}:${IMAGE_VERSION} ${BACKEND_IMAGE}:latest"
-                    echo "后端 Docker 镜像 ${BACKEND_IMAGE}:${IMAGE_VERSION} 构建完成！"
-                }
-            }
-        }
-
-        stage('4. Deploy Docker Images to Server') {
-            steps {
-                echo '--- 步骤4: 部署 Docker 镜像到阿里云服务器 ---'
+                echo '--- 步骤2: 部署到服务器（在服务器上构建，避免本地内存不足） ---'
                 script {
-                    echo '保存 Docker 镜像为 tar 文件...'
-                    sh "docker save -o frontend-image.tar ${FRONTEND_IMAGE}:${IMAGE_VERSION}"
-                    sh "docker save -o backend-image.tar ${BACKEND_IMAGE}:${IMAGE_VERSION}"
+                    //先压缩代码并传输到服务器
+                    echo '压缩代码...'
+                    sh 'tar -czf talentpool.tar.gz --exclude=.git --exclude=frontend/node_modules frontend/ backend/ docker-compose.yml 2>/dev/null || tar -czf talentpool.tar.gz frontend/ backend/ docker-compose.yml'
 
-                    echo '传输镜像文件到服务器...'
+                    echo '传输代码到服务器...'
                     sshagent(credentials: [SERVER_CRED_ID]) {
-                        sh "scp -o StrictHostKeyChecking=no frontend-image.tar ${SERVER_USER}@${SERVER_IP}:${SERVER_APP_DIR}/"
-                        sh "scp -o StrictHostKeyChecking=no backend-image.tar ${SERVER_USER}@${SERVER_IP}:${SERVER_APP_DIR}/"
+                        sh "scp -o StrictHostKeyChecking=no talentpool.tar.gz ${SERVER_USER}@${SERVER_IP}:${SERVER_APP_DIR}/"
                     }
 
-                    echo '在服务器上加载镜像、强制清理旧容器、重启服务...'
+                    echo '在服务器上构建并部署...'
                     sshagent(credentials: [SERVER_CRED_ID]) {
                         sh """
                             ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_IP} "
                                 set -e
                                 cd ${SERVER_APP_DIR}
 
+                                # 1. 解压代码
+                                echo '解压代码...'
+                                rm -rf old_code backup2>/dev/null || true
+                                mkdir -p backup
+                                mv frontend backend docker-compose.yml backup/ 2>/dev/null || true
+                                tar -xzf talentpool.tar.gz
+
+                                # 2. 强制清理旧容器
                                 echo '【强制清理】停止并删除旧容器...'
                                 docker stop talentpool-frontend talentpool-backend 2>/dev/null || true
                                 docker rm -f talentpool-frontend talentpool-backend 2>/dev/null || true
 
-                                echo '【强制清理】清理未使用的镜像和容器...'
-                                docker image prune -f
-                                docker container prune -f
+                                # 3. 清理旧镜像
+                                echo '【强制清理】清理旧镜像...'
+                                docker image prune -a -f --filter "until=24h"
 
-                                echo '【强制清理】清理网络...'
-                                docker network rm talentpool_default 2>/dev/null || true
+                                # 4. 构建前端镜像
+                                echo '构建前端镜像...'
+                                cd frontend
+                                docker build -t ${FRONTEND_IMAGE}:latest . --no-cache
+                                cd ..
 
-                                echo '加载前端镜像...'
-                                docker load -i frontend-image.tar
-                                echo '加载后端镜像...'
-                                docker load -i backend-image.tar
+                                # 5. 构建后端镜像
+                                echo '构建后端镜像...'
+                                cd backend
+                                docker build -t ${BACKEND_IMAGE}:latest . --no-cache
+                                cd ..
 
-                                echo '使用 Docker Compose 重启服务...'
-
-                                if [ ! -f docker-compose.yml ]; then
-                                    echo '错误：docker-compose.yml 文件不存在！'
-                                    exit 1
-                                fi
-
+                                # 6. 启动服务
+                                echo '启动服务...'
                                 docker-compose down
                                 docker-compose up -d --build
 
+                                # 7. 等待并验证
                                 echo '等待服务启动...'
-                                sleep 10
+                                sleep 15
 
                                 echo '检查服务状态...'
                                 docker-compose ps
 
                                 echo '测试后端接口...'
-                                curl -f http://localhost:8000/api/dashboard/stats || echo '后端测试失败，但继续执行'
+                                curl -f http://localhost:8000/api/dashboard/stats && echo '✅ 服务正常' || echo '⚠️ 服务异常'
 
-                                echo '清理服务器上的临时镜像文件...'
-                                rm -f frontend-image.tar backend-image.tar
-                                echo '部署完成！'
+                                # 8. 清理临时文件
+                                echo '清理临时文件...'
+                                rm -f talentpool.tar.gz
+                                rm -rf backup
+
+                                echo '✅ 部署完成！'
                             "
                         """
                     }
@@ -123,20 +110,24 @@ pipeline {
 
     post {
         always {
-            echo '--- 流水线执行完毕，清理工作空间 ---'
+            echo '--- 清理 Jenkins工作空间 ---'
             cleanWs()
-            sh 'rm -f backend-image.tar frontend-image.tar 2>/dev/null || true'
+            sh 'rm -f talentpool.tar.gz 2>/dev/null || true'
         }
 
         success {
-            echo '--- 构建成功！ ---'
-            echo '前端镜像: talentpool-frontend:' + IMAGE_VERSION
-            echo '后端镜像: talentpool-backend:' + IMAGE_VERSION
+            echo '--- ✅ 部署成功！ ---'
             echo '服务器: ' + SERVER_IP
+            echo '前端镜像: talentpool-frontend:latest'
+            echo '后端镜像: talentpool-backend:latest'
         }
 
         failure {
-            echo '--- 构建失败！ ---'
+            echo '--- ❌ 部署失败！ ---'
+            echo '可能原因：'
+            echo '1. 网络连接问题'
+            echo '2. 服务器资源不足'
+            echo '3. 代码语法错误'
             echo '请检查日志并修复问题后重试'
         }
     }
