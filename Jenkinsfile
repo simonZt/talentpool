@@ -1,14 +1,13 @@
 pipeline {
-    // 1. 在任何可用的代理（Agent）上运行
-    agent any
+    // 1. 在任何可用的代理（Agent）上运行 agent any
 
     // 2. 定义工具版本 (需要在 Jenkins 全局配置中预先安装)
     tools {
-        // 确保这里的名称和你 Jenkins 全局配置里的 NodeJS 名称一致
+ // 确保这里的名称和你 Jenkins 全局配置里的 NodeJS 名称一致
         nodejs 'NodeJS-18'
     }
 
-    // 3. 环境变量，方便统一管理
+    // 3.环境变量，方便统一管理
     environment {
         // 你的服务器信息
         SERVER_IP = '8.137.37.22'
@@ -82,8 +81,8 @@ pipeline {
                         sh "scp -o StrictHostKeyChecking=no backend-image.tar ${SERVER_USER}@${SERVER_IP}:${SERVER_APP_DIR}/"
                     }
 
-                    // 4.3 在服务器上加载镜像并使用 docker-compose 启动服务
-                    echo '在服务器上加载镜像并重启服务...'
+                    // 4.3 在服务器上加载镜像、强制清理旧容器、启动服务
+                    echo '在服务器上加载镜像、强制清理旧容器、重启服务...'
                     sshagent(credentials: [SERVER_CRED_ID]) {
                         sh """
                             ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_IP} "
@@ -92,21 +91,52 @@ pipeline {
                                 # 进入应用目录
                                 cd ${SERVER_APP_DIR}
 
-                                # 加载镜像
+                                # ==================== 新增：强制清理旧容器 ====================
+                                echo '【强制清理】停止并删除旧容器...'
+                                docker stop talentpool-frontend talentpool-backend 2>/dev/null || true
+                                docker rm -f talentpool-frontend talentpool-backend 2>/dev/null || true
+
+                                echo '【强制清理】清理未使用的镜像和容器...'
+                                docker image prune -f
+                                docker container prune -f
+
+                                echo '【强制清理】清理网络...'
+                                docker network rm talentpool_default 2>/dev/null || true
+ # ================================================================= # 加载镜像
                                 echo '加载前端镜像...'
                                 docker load -i frontend-image.tar
                                 echo '加载后端镜像...'
                                 docker load -i backend-image.tar
 
                                 # 使用 docker-compose 重启服务
-                                # 前提：服务器上必须存在 /opt/talentpool/docker-compose.yml 文件
                                 echo '使用 Docker Compose 重启服务...'
+
+                                # 如果 docker-compose.yml 不存在，先检查
+                                if [ ! -f docker-compose.yml ]; then
+                                    echo '错误：docker-compose.yml 文件不存在！'
+                                    exit 1
+                                fi
+
+                                # 重新创建并启动服务
                                 docker-compose down
                                 docker-compose up -d --build
+
+                                # 等待服务启动
+                                echo '等待服务启动...'
+                                sleep 10
+
+                                # 检查服务状态
+                                echo '检查服务状态...'
+                                docker-compose ps
+
+                                # 测试后端是否正常
+                                echo '测试后端接口...'
+                                curl -f http://localhost:8000/api/dashboard/stats || echo '后端测试失败，但继续执行'
 
                                 # 清理服务器上的 tar 文件，节省空间
                                 echo '清理服务器上的临时镜像文件...'
                                 rm -f frontend-image.tar backend-image.tar
+                                echo '部署完成！'
                             "
                         """
                     }
@@ -120,7 +150,19 @@ pipeline {
             echo '--- 流水线执行完毕，清理工作空间 ---'
             // 清理工作空间和 Jenkinsfile 同级目录下的 tar 文件
             cleanWs()
-            sh 'rm -f backend-image.tar frontend-image.tar'
+            sh 'rm -f backend-image.tar frontend-image.tar 2>/dev/null || true'
+        }
+
+        success {
+            echo '---构建成功！ ---'
+            echo '前端镜像: talentpool-frontend:' + IMAGE_VERSION
+            echo '后端镜像: talentpool-backend:' + IMAGE_VERSION
+            echo '服务器: ' + SERVER_IP
+        }
+
+        failure {
+            echo '--- 构建失败！ ---'
+            echo '请检查日志并修复问题后重试'
         }
     }
 }
