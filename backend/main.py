@@ -6,6 +6,7 @@ from models import User
 from auth import get_password_hash, role_required, get_current_user
 from starlette.middleware.base import BaseHTTPMiddleware
 import os
+import asyncio
 
 # 添加超时中间件
 class TimeoutMiddleware(BaseHTTPMiddleware):
